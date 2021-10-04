@@ -68,10 +68,10 @@ The following table lists the configurable parameters of the mlflow chart and th
 | `db.user`                          | Database user                                       | admin                                                                  |
 | `db.password`                      | Database password                                   | password                                                               |
 | `db.database`                      | Database name                                       | postgres                                                               |
-| **Minio Configuration**            |
-| `minio.url`                        | mlflow S3 endpoint url frontend                     | `minio.default.svc.cluster.local:9000`                                 |
-| `minio.accesskey`                  | minio access key                                    | `secret`                                                               |
-| `minio.secretkey`                  | minio secret key                                    | `secret`                                                               |
+| **s3 Configuration**            |
+| `s3.url`                        | mlflow S3 endpoint url frontend                     | `s3.default.svc.cluster.local:9000`                                 |
+| `s3.accesskey`                  | s3 access key                                    | `secret`                                                               |
+| `s3.secretkey`                  | s3 secret key                                    | `secret`                                                               |
 | **Service**                        |
 | `service.type`                     | Type of service for MLFlow frontend                 | `NodePort`                                                             |
 | `service.port`                     | Port to expose service                              | `80`                                                                   |

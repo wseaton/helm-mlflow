@@ -5,31 +5,38 @@ image:
   tag: 1.5.1
   pullPolicy: IfNotPresent
 
-default_artifact_root: "s3://datalake/mlflow/artifacts"
-
-
+route:
+  enabled: true
 
 db:
   default:
-    enabled: false
+    enabled: true
+  ## type can be 'postgresql', 'mysql' or any other db type that can be used in a db_uri
+  type: postgresql
   host: postgresql
   port: 5432
   user: admin
   password: password
   database: postgres
 
-minio:
-  url: minio.default.svc.cluster.local:9000
-  accesskey: secret
-  secretkey: secret
+s3:
+  prefix:
+  bucketName: "rh-stage-ssa"
+  secret: ""
+  keys:
+    accesskey: secret
+    secretkey: secret
+
+default_artifact_root: "s3://{{ .Values.s3.bucketName }}/{{ .Values.s3.prefix }}/mlflow/artifacts"
 
 nameOverride: ""
 fullnameOverride: ""
 
 service:
   type: NodePort
-  port: 80
-  annotations: {}
+  port: 443
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: proxy-tls
   ## Set the LoadBalancer service type to internal only.
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
   ##
@@ -63,9 +70,13 @@ resources: {}
   #   memory: 128Mi
 
 # volumes:
-#   - name: minio
+#   - name: s3
 #     persistentVolumeClaim:
-#       claimName: minio
+#       claimName: s3
+volumes:
+  - name: proxy-tls
+    secret:
+      secretName: proxy-tls
 
 nodeSelector: {}
 

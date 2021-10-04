@@ -19,7 +19,28 @@ spec:
         app.kubernetes.io/name: {{ include "mlflow.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      serviceAccountName: mlflow
       containers:
+      - name: oauth-proxy
+        image: quay.io/openshift/origin-oauth-proxy:4.8
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8443
+        name: public
+        args:
+        - --https-address=:8443
+        - --provider=openshift
+        - --openshift-service-account=spark-history-server
+        - --upstream=http://localhost:18080
+        - --tls-cert=/etc/tls/private/tls.crt
+        - --tls-key=/etc/tls/private/tls.key
+        - '--openshift-sar={"namespace":"{{ .Release.Namespace }}","resource":"services","name":"{{ include "mlflow.name" . }}","verb":"get"}'
+        volumeMounts:
+        - mountPath: /etc/tls/private
+          name: proxy-tls
+        envFrom:
+        - secretRef:
+            name: oauth-cookie-secret     
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -29,15 +50,18 @@ spec:
               protocol: TCP
           env:
           - name: BACKEND_STORE_URI
-            value: "postgresql://{{ .Values.db.user }}:{{ .Values.db.password }}@{{ .Values.db.host }}:{{ .Values.db.port }}/{{ .Values.db.database }}"
+            value: "{{ .Values.db.type }}://{{ .Values.db.user }}:{{ .Values.db.password }}@{{ .Values.db.host }}:{{ .Values.db.port }}/{{ .Values.db.database }}"
           - name: DEFAULT_ARTIFACT_ROOT
             value: {{ .Values.default_artifact_root }}
           - name: MLFLOW_S3_ENDPOINT_URL
-            value: {{ .Values.minio.url }}
-          - name: AWS_ACCESS_KEY_ID
-            value: {{ .Values.minio.accesskey }}
-          - name: AWS_SECRET_ACCESS_KEY
-            value: {{ .Values.minio.secretkey }}
+            value: {{ .Values.s3.url }}
+          # - name: AWS_ACCESS_KEY_ID
+          #   value: {{ .Values.s3.accesskey }}
+          # - name: AWS_SECRET_ACCESS_KEY
+          #   value: {{ .Values.s3.secretkey }}
+          envFrom: # includes AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY
+            - secretRef:
+              name: {{ .Values.s3.secret }}
           livenessProbe:
             httpGet:
               path: /
@@ -50,7 +74,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           # volumeMounts:
           #   - mountPath: "/export"
-          #     name: minio
+          #     name: s3
 {{- if .Values.volumes }}
 {{- with .Values.nodeSelector }}
       nodeSelector:
